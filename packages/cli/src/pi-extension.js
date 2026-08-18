@@ -11,6 +11,7 @@ import {
 import { createConfig, loginScopes, withScopes } from './config.js'
 import { loginCommand } from './commands/login.js'
 import { logoutCommand } from './commands/logout.js'
+import { ASK_CHOICE_TOOL, createAskChoiceTool } from './harness/ask-choice.js'
 import { createHarnessHeader, summarizeDeviceInventory } from './harness/header.js'
 
 const NEW_BENCHMARK_INTENT = /\b(?:benchmark(?:ing|ed|s)?|evaluat(?:e|ing|ed|ion)|profil(?:e|ing|ed)|measure(?:ment|ments|d|s|ing)?|test(?:ing|ed|s)?)\b/i
@@ -97,6 +98,8 @@ export function createTinyEdgePiExtension({
     const config = createConfigImpl(env, platform)
     const secretStore = createSecretStoreImpl({ configDir: config.configDir, platform })
     const tokenStore = createTokenStoreImpl({ configDir: config.configDir, secretStore })
+    const askChoiceTool = createAskChoiceTool(defineToolImpl)
+    pi.registerTool(askChoiceTool)
     let registeredTools = []
     let headerContext
     let freshBenchmarkTurn = false
@@ -165,8 +168,8 @@ export function createTinyEdgePiExtension({
       for (const tool of tools) pi.registerTool(tool)
       registeredTools = tools.map((tool) => tool.name)
       const active = standalone
-        ? registeredTools
-        : [...new Set([...pi.getActiveTools(), ...registeredTools])]
+        ? [ASK_CHOICE_TOOL, ...registeredTools]
+        : [...new Set([...pi.getActiveTools(), ASK_CHOICE_TOOL, ...registeredTools])]
       pi.setActiveTools(active)
       updateHeader({ connected: true, connecting: false }, ctx)
       await refreshDeviceInventory(client, advertisedTools, ctx)
@@ -231,7 +234,10 @@ export function createTinyEdgePiExtension({
       handler: async (_args, ctx) => {
         await logoutImpl({ tokenStore, io: uiIo(ctx) })
         const previous = new Set(registeredTools)
-        pi.setActiveTools(pi.getActiveTools().filter((name) => !previous.has(name)))
+        pi.setActiveTools([
+          ASK_CHOICE_TOOL,
+          ...pi.getActiveTools().filter((name) => name === ASK_CHOICE_TOOL || !previous.has(name)),
+        ].filter((name, index, names) => names.indexOf(name) === index))
         registeredTools = []
         updateHeader({ connected: false, connecting: false, deviceGroups: [] }, ctx)
         ctx.ui.notify('TinyEdge disconnected. Registered tools now fail closed.', 'info')
@@ -267,6 +273,7 @@ export function createTinyEdgePiExtension({
     }
 
     pi.on('tool_call', (event) => {
+      if (event.toolName === ASK_CHOICE_TOOL) return undefined
       if (freshBenchmarkTurn && event.toolName === 'list_devices'
         && registeredTools.includes(event.toolName)) {
         if (freshDeviceCheckStarted) {
@@ -284,6 +291,7 @@ export function createTinyEdgePiExtension({
     })
 
     pi.on('session_start', async (_event, ctx) => {
+      pi.setActiveTools([...new Set([ASK_CHOICE_TOOL, ...pi.getActiveTools()])])
       renderHeader(ctx)
       try {
         const summary = await tokenStore.summary()

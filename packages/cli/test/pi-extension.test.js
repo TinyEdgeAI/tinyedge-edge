@@ -71,7 +71,7 @@ test('existing Pi extension registers commands and scope-bound TinyEdge tools', 
   ])
   await pi.commands.get('tinyedge-login').handler('--allow-run', fakeContext(messages))
   assert.deepEqual(loginScopesSeen, ['tinyedge:read', 'tinyedge:run'])
-  assert.deepEqual([...pi.tools.keys()], ['list_tasks', 'run_benchmark'])
+  assert.deepEqual([...pi.tools.keys()], ['ask_choice', 'list_tasks', 'run_benchmark'])
   assert.match(messages.at(-1).message, /2 tools available/)
 
   await pi.commands.get('tinyedge-logout').handler('', fakeContext(messages))
@@ -101,7 +101,7 @@ test('existing Pi extension uses the Pi-compatible identity tool definition by d
   })(pi)
 
   await pi.handlers.get('session_start')({}, fakeContext(messages))
-  assert.deepEqual([...pi.tools.keys()], ['list_devices'])
+  assert.deepEqual([...pi.tools.keys()], ['ask_choice', 'list_devices'])
 })
 
 test('standalone Harness blocks direct shell and non-TinyEdge tools', async () => {
@@ -168,6 +168,7 @@ test('Harness gives a fresh benchmark request a deterministic question-first too
   })
 
   assert.equal(pi.handlers.get('tool_call')({ toolName: 'list_devices' }), undefined)
+  assert.equal(pi.handlers.get('tool_call')({ toolName: 'ask_choice' }), undefined)
   assert.deepEqual(pi.handlers.get('tool_call')({ toolName: 'list_devices' }), {
     block: true,
     reason: 'The device was already checked for this request. Ask the user one concise intake question now.',

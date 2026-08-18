@@ -382,6 +382,7 @@ test('new benchmark intake instructions prohibit stale-task inference and multi-
   assert.match(prompt, /do not inspect or reuse old tasks, notes, traces/i)
   assert.match(prompt, /Do not select a task, model, dataset, workload, capture method, or objective/i)
   assert.match(prompt, /ask exactly one question/i)
+  assert.match(prompt, /call ask_choice instead of writing a numbered list/i)
   assert.match(prompt, /hardware interface or capture source is missing, ask for that first/i)
   assert.match(prompt, /Never present a multi-part intake checklist/i)
   assert.match(prompt, /Never choose an existing task merely because its title looks similar/i)

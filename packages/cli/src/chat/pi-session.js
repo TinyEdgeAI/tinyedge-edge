@@ -1,6 +1,7 @@
 import path from 'node:path'
 
 import { redactSecrets } from '../auth/redact.js'
+import { ASK_CHOICE_TOOL } from '../harness/ask-choice.js'
 import { READ_SCOPE, RUN_SCOPE, WRITE_SCOPE } from '../config.js'
 import { createPiCredentialStore } from './pi-credential-store.js'
 
@@ -39,7 +40,7 @@ const RUN_TOOLS = Object.freeze([
 ])
 
 export const TINYEDGE_CHAT_TOOL_ALLOWLIST = Object.freeze([
-  ...READ_TOOLS, ...WRITE_TOOLS, ...RUN_TOOLS,
+  ASK_CHOICE_TOOL, ...READ_TOOLS, ...WRITE_TOOLS, ...RUN_TOOLS,
 ])
 
 export function toolsForScopes(scopes = []) {
@@ -138,7 +139,7 @@ Compare runs only after their returned status is completed. If list_runs is unav
 Treat a request to benchmark, test, or evaluate a setup as a new intake unless the user explicitly asks to resume an existing TinyEdge task.
 For a new intake, you may call list_devices once to verify the target. Do not call list_tasks, list_models, or list_datasets, and do not inspect or reuse old tasks, notes, traces, artifact bindings, or capture settings.
 Do not select a task, model, dataset, workload, capture method, or objective from account history or from an assumption. An artifact bound to an old task is not a recommendation for this request.
-After the device check, give at most two short context sentences and ask exactly one question. When useful, offer two to four numbered choices and let the user type a different answer. Never present a multi-part intake checklist.
+After the device check, give at most two short context sentences and ask exactly one question. When the user should choose among known options, call ask_choice instead of writing a numbered list. The selector already includes a type-a-different-answer option. Never present a multi-part intake checklist.
 For a camera or sensor request, if the hardware interface or capture source is missing, ask for that first and never infer it from account history.
 Do not expose internal IDs, raw tool output, stored state names such as "intake", or internal notes unless the user asks or an ID is required to disambiguate two human-readable choices.
 If the user explicitly asks to resume existing work, call list_tasks, present only human-readable task titles, and ask the user to choose before reading any task brief. Never choose an existing task merely because its title looks similar.
